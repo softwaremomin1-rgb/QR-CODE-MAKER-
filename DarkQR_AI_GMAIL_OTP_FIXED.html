@@ -1,0 +1,442 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="theme-color" content="#07090f">
+<title>DarkQR AI — QR Code Maker</title>
+
+<script>
+/*
+  OTP MAIL CONFIG
+  Sender account: softwaremomin1@gmail.com
+  IMPORTANT: A static HTML file cannot securely send Gmail mail by itself.
+  Set up the backend endpoint /api/auth/send-otp so the backend sends:
+      From: softwaremomin1@gmail.com
+      To:   the email entered by the user
+  Never put the Gmail password/App Password in this HTML file.
+*/
+window.DARKQR_OTP_CONFIG = {
+  senderEmail: "softwaremomin1@gmail.com",
+  sendOtpEndpoint: "/api/auth/send-otp"
+};
+</script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+<style>
+:root{
+  --bg:#07090f;--panel:#0d111b;--panel2:#111827;--line:#202a3b;
+  --text:#f5f7fb;--muted:#8994a8;--accent:#7c5cff;--accent2:#00d4ff;
+  --good:#2ee6a6;--danger:#ff5470;--shadow:0 18px 60px rgba(0,0,0,.45)
+}
+*{box-sizing:border-box}
+body{margin:0;background:radial-gradient(circle at 20% -10%,#1a123b 0,#07090f 38%),var(--bg);color:var(--text);font-family:Inter,system-ui,-apple-system,Segoe UI,Roboto,sans-serif;min-height:100vh}
+button,input,textarea,select{font:inherit}
+button{cursor:pointer}
+.app{max-width:1180px;margin:auto;padding:18px 14px 100px}
+.topbar{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:18px}
+.brand{display:flex;align-items:center;gap:11px}
+.logo{width:42px;height:42px;border:1px solid #384260;border-radius:13px;display:grid;place-items:center;background:linear-gradient(145deg,#171b2c,#0a0d15);box-shadow:0 8px 30px #0007;font-weight:900;color:#fff}
+.brand h1{font-size:18px;margin:0}.brand small{color:var(--muted)}
+.top-actions{display:flex;align-items:center;gap:8px}
+.pill{border:1px solid var(--line);background:#0d121d;border-radius:999px;padding:9px 12px;color:#dce3ef;font-size:13px}
+.credit{color:#dcd4ff;border-color:#463a77}
+.btn{border:1px solid #35405a;background:#101624;color:#fff;border-radius:12px;padding:11px 14px;transition:.16s transform,.16s box-shadow,.16s border-color;box-shadow:0 0 0 rgba(124,92,255,0)}
+.btn:hover{border-color:#6473a0;box-shadow:0 8px 28px #0005}.btn:active{transform:scale(.95)}
+.btn.primary{background:linear-gradient(135deg,#7c5cff,#4d8dff);border-color:#927cff}
+.btn.ghost{background:transparent}
+.grid{display:grid;grid-template-columns:1.15fr .85fr;gap:16px}
+.card{background:linear-gradient(180deg,#0f1420eF,#0b0f18eF);border:1px solid var(--line);border-radius:20px;box-shadow:var(--shadow);padding:18px}
+.card h2{font-size:17px;margin:0 0 5px}.sub{color:var(--muted);font-size:13px;margin:0 0 17px}
+.tabs{display:flex;gap:7px;overflow:auto;margin-bottom:14px;padding-bottom:2px}.tab{white-space:nowrap}
+.tab.active{border-color:#7661e8;background:#17132c;color:#fff}
+label{display:block;color:#aeb8c9;font-size:12px;margin:0 0 7px}
+textarea,input,select{width:100%;border:1px solid #273247;background:#080c14;color:#fff;border-radius:13px;padding:13px;outline:none}
+textarea{min-height:150px;resize:vertical}textarea:focus,input:focus,select:focus{border-color:#725cff;box-shadow:0 0 0 3px #725cff20}
+.row{display:flex;gap:9px;align-items:center}.row>*{flex:1}
+.form{display:grid;gap:13px}
+.actions{display:flex;gap:9px;flex-wrap:wrap;margin-top:4px}
+.qrbox{min-height:340px;display:grid;place-items:center;border:1px dashed #33405a;border-radius:17px;background:radial-gradient(circle,#151d30 0,#080c14 65%);padding:18px}
+#qrcode{background:white;padding:14px;border-radius:10px;line-height:0}
+.qr-placeholder{text-align:center;color:#68758c;font-size:13px;max-width:240px}
+.qr-placeholder b{display:block;color:#bfc8d8;font-size:16px;margin-bottom:5px}
+.stats{display:grid;grid-template-columns:repeat(3,1fr);gap:9px;margin-bottom:15px}
+.stat{padding:13px;border:1px solid var(--line);background:#0a0e17;border-radius:14px}.stat b{font-size:19px}.stat span{display:block;color:var(--muted);font-size:11px;margin-top:2px}
+.preview-actions{display:flex;gap:8px;margin-top:12px}
+.preview-actions .btn{flex:1}
+.ai{display:flex;flex-direction:column;height:100%}.chat{flex:1;min-height:300px;max-height:480px;overflow:auto;display:flex;flex-direction:column;gap:10px;padding:2px}
+.msg{max-width:88%;padding:11px 12px;border-radius:14px;font-size:13px;line-height:1.45;border:1px solid var(--line)}
+.msg.ai{align-self:flex-start;background:#101725}.msg.me{align-self:flex-end;background:#231b4e;border-color:#4b3b82}
+.chatbar{display:flex;gap:8px;margin-top:12px}.chatbar input{flex:1}
+.account{display:grid;gap:10px}
+.verify{display:flex;gap:10px;align-items:center;border:1px solid #254c42;background:#0a1715;padding:12px;border-radius:14px}
+.check{width:27px;height:27px;border-radius:50%;display:grid;place-items:center;background:#163d34;color:var(--good);font-weight:900}
+.prices{display:grid;grid-template-columns:repeat(3,1fr);gap:9px}.price{border:1px solid var(--line);padding:14px;border-radius:15px;background:#0a0e17}.price b{font-size:20px}.price span{display:block;color:var(--muted);font-size:11px;margin:4px 0 12px}
+.history{margin-top:15px}.history-item{display:flex;justify-content:space-between;gap:10px;padding:11px 0;border-bottom:1px solid #192235;font-size:12px}.history-item span{color:var(--muted);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.hidden{display:none!important}
+.footer{text-align:center;color:#566176;font-size:11px;margin-top:25px}
+.toast{position:fixed;left:50%;bottom:20px;transform:translate(-50%,20px);opacity:0;pointer-events:none;background:#151c2a;border:1px solid #34415a;padding:11px 15px;border-radius:12px;box-shadow:var(--shadow);transition:.2s;z-index:20}.toast.show{opacity:1;transform:translate(-50%,0)}
+.modal{position:fixed;inset:0;background:#000a;display:grid;place-items:center;padding:18px;z-index:10}.modalbox{max-width:520px;width:100%;background:#0c111b;border:1px solid #2a3550;border-radius:20px;padding:18px;box-shadow:var(--shadow)}
+@media(max-width:820px){.grid{grid-template-columns:1fr}.qrbox{min-height:290px}.top-actions .hide-m{display:none}}
+@media(max-width:480px){.app{padding:12px 10px 90px}.card{padding:14px;border-radius:17px}.stats{grid-template-columns:1fr 1fr 1fr}.prices{grid-template-columns:1fr}.brand small{display:none}.btn{padding:10px 11px}}
+</style>
+</head>
+<body>
+<div class="app">
+  <header class="topbar">
+    <div class="brand"><div class="logo">QR</div><div><h1>DarkQR AI</h1><small>Universal QR code studio</small></div></div>
+    <div class="top-actions">
+      <div class="pill credit">⚡ <b id="creditCount">50</b> credits</div>
+      <button class="btn ghost" onclick="openAuth('login')">Account</button>
+    </div>
+  </header>
+
+  <div class="stats">
+    <div class="stat"><b id="todayCount">0</b><span>QRs today</span></div>
+    <div class="stat"><b>1</b><span>credit / QR</span></div>
+    <div class="stat"><b id="imageCredits">50</b><span>AI credits</span></div>
+  </div>
+
+  <main class="grid">
+    <section class="card">
+      <h2>Create a QR code</h2>
+      <p class="sub">Encode almost anything: website, text, Wi‑Fi, contact details, passwords, payment text and more.</p>
+      <div class="tabs">
+        <button class="btn tab active" data-type="text">Text</button>
+        <button class="btn tab" data-type="url">Website</button>
+        <button class="btn tab" data-type="wifi">Wi‑Fi</button>
+        <button class="btn tab" data-type="email">Email</button>
+        <button class="btn tab" data-type="phone">Phone</button>
+      </div>
+      <div id="formArea"></div>
+      <div class="actions">
+        <button class="btn primary" onclick="makeQR()">✦ Generate QR · 1 credit</button>
+        <button class="btn" onclick="clearQR()">Clear</button>
+      </div>
+    </section>
+
+    <section class="card">
+      <h2>Your QR</h2>
+      <p class="sub">Scan with any normal QR scanner.</p>
+      <div class="qrbox" id="qrbox">
+        <div class="qr-placeholder"><b>Your QR appears here</b>Enter content and tap Generate.</div>
+        <div id="qrcode" class="hidden"></div>
+      </div>
+      <div class="preview-actions">
+        <button class="btn" onclick="downloadQR()">Download PNG</button>
+        <button class="btn" onclick="copyQR()">Copy data</button>
+      </div>
+      <div class="history">
+        <h2>Recent</h2>
+        <div id="historyList"><div class="sub">No QR codes yet.</div></div>
+      </div>
+    </section>
+
+    <section class="card ai">
+      <h2>Personal AI Assistant</h2>
+      <p class="sub">Ask how to format data, create QR payloads, troubleshoot scanning, or improve your QR workflow.</p>
+      <div id="chat" class="chat">
+        <div class="msg ai">Hi! I’m your QR assistant. Tell me what you want to put inside the QR and I’ll help you format it.</div>
+      </div>
+      <div class="chatbar"><input id="aiInput" placeholder="Ask your assistant…" onkeydown="if(event.key==='Enter')askAI()"><button class="btn primary" onclick="askAI()">Send · 5</button></div>
+      <div class="form" style="margin-top:12px">
+        <div><label>AI image prompt · 5 credits</label><textarea id="imagePrompt" style="min-height:85px" placeholder="Describe the image you want AI to create…"></textarea></div>
+        <button class="btn" onclick="generateAIImage()">✦ Generate image · 5 credits</button>
+        <div id="imageResult" class="hidden"></div>
+      </div>
+    </section>
+
+    <section class="card">
+      <h2>Secure account</h2>
+      <p class="sub">Create a password, verify your email with a fresh OTP, and sign in securely.</p>
+      <div class="account">
+        <div class="verify"><div class="check">✓</div><div><b id="accountName">Guest Account</b><div class="sub" style="margin:2px 0">Email verification: <span id="verifyStatus">Not verified</span></div></div></div>
+        <div class="actions">
+          <button class="btn primary" onclick="openAuth('signup')">Create account</button>
+          <button class="btn" onclick="openAuth('login')">Sign in</button>
+          <button class="btn" onclick="openAuth('verify')">Verify email</button>
+        </div>
+      </div>
+      <h2 style="margin-top:18px">Payment methods</h2>
+      <p class="sub">Cards, UPI, net banking, wallets, Apple Pay and Google Pay can be offered by your payment provider.</p>
+      <div class="prices">
+        <div class="price"><b>100</b><span>extra credits</span><button class="btn primary" onclick="startPayment(100,49)">₹49</button></div>
+        <div class="price"><b>500</b><span>extra credits</span><button class="btn primary" onclick="startPayment(500,149)">₹149</button></div>
+        <div class="price"><b>1,000</b><span>extra credits</span><button class="btn primary" onclick="startPayment(1000,249)">₹249</button></div>
+      </div>
+      <div class="footer">Real payments must be confirmed by a server-side payment webhook before credits are added.</div>
+    </section>
+  </main>
+  <div class="footer">DarkQR AI · 50 free credits refresh every day · 1 credit per generated QR · AI image = 5 credits</div>
+</div>
+
+<div id="modal" class="modal hidden">
+  <div class="modalbox">
+    <h2 id="authTitle">Create account</h2>
+    <p class="sub" id="authSub">Create a password and verify your email with a fresh OTP.</p>
+    <div class="form">
+      <div id="authNameWrap"><label>Display name</label><input id="nameInput" placeholder="Your name"></div>
+      <div><label>Email</label><input id="emailInput" type="email" value="" placeholder="you@example.com"></div>
+      <div id="passwordWrap"><label>Password</label><input id="passwordInput" type="password" minlength="8" placeholder="Create a password"></div>
+      <div id="otpWrap" class="hidden">
+        <label>Email OTP</label><input id="otpInput" inputmode="numeric" maxlength="6" placeholder="6-digit OTP">
+        <div class="actions"><button class="btn primary" onclick="verifyOTP()">Verify OTP</button><button id="resendBtn" class="btn" onclick="sendOTP()">Send new OTP</button></div>
+        <div id="otpTimer" class="sub">Resend available now.</div>
+      </div>
+      <button id="authMainBtn" class="btn primary" onclick="authMain()">Create account & send OTP</button>
+      <button id="msBtn" class="btn" onclick="microsoftLogin()">Ⓜ Continue with Microsoft</button>
+      <button class="btn" onclick="closeAccount()">Close</button>
+      <div class="footer">For real security, connect the API endpoints below to your backend. Never put mail/payment/API secrets in this HTML.</div>
+    </div>
+  </div>
+</div>
+
+
+<div id="paymentModal" class="modal hidden">
+  <div class="modalbox">
+    <h2>Choose payment method</h2>
+    <p class="sub" id="paymentSummary">Select a method to continue.</p>
+    <div class="form">
+      <button class="btn" onclick="demoPayment('UPI')">🇮🇳 UPI</button>
+      <button class="btn" onclick="demoPayment('Card')">💳 Credit / Debit Card</button>
+      <button class="btn" onclick="demoPayment('Net Banking')">🏦 Net Banking</button>
+      <button class="btn" onclick="demoPayment('Wallet')">👛 Wallet</button>
+      <button class="btn" onclick="demoPayment('Google Pay')">G Pay</button>
+      <button class="btn" onclick="demoPayment('Apple Pay')"> Apple Pay</button>
+      <button class="btn" onclick="closePayment()">Cancel</button>
+    </div>
+    <div class="footer">Standalone demo mode: no real money is charged. Connect a server-side payment provider for live payments.</div>
+  </div>
+</div>
+
+<div id="toast" class="toast"></div>
+
+<script>
+const KEY="darkqr_state_v1";
+let state=JSON.parse(localStorage.getItem(KEY)||"null")||{
+  credits:50,lastReset:new Date().toDateString(),today:0,name:"Guest Account",email:"",
+  history:[],lastData:"",emailVerified:false,loggedIn:false,aiSpent:0
+};
+function save(){localStorage.setItem(KEY,JSON.stringify(state))}
+function resetDaily(){
+  const d=new Date().toDateString();
+  if(state.lastReset!==d){state.lastReset=d;state.credits+=50;state.today=0;save()}
+}
+resetDaily();
+
+const formArea=document.getElementById("formArea");
+let currentType="text";
+function renderForm(type=currentType){
+  currentType=type;
+  document.querySelectorAll(".tab").forEach(x=>x.classList.toggle("active",x.dataset.type===type));
+  if(type==="text") formArea.innerHTML=`<div><label>Content</label><textarea id="data" placeholder="Write any text, password, secret, code, note, etc."></textarea></div>`;
+  if(type==="url") formArea.innerHTML=`<div><label>Website URL</label><input id="data" placeholder="https://example.com" inputmode="url"></div>`;
+  if(type==="wifi") formArea.innerHTML=`<div class="form"><div><label>Network name (SSID)</label><input id="ssid" placeholder="My WiFi"></div><div><label>Password</label><input id="pass" type="password" placeholder="WiFi password"></div><div><label>Security</label><select id="security"><option>WPA</option><option>WEP</option><option value="">Open / none</option></select></div></div>`;
+  if(type==="email") formArea.innerHTML=`<div class="form"><div><label>Email address</label><input id="email" type="email" placeholder="hello@example.com"></div><div><label>Subject</label><input id="subject" placeholder="Hello"></div><div><label>Message</label><textarea id="message" placeholder="Your message"></textarea></div></div>`;
+  if(type==="phone") formArea.innerHTML=`<div><label>Phone number</label><input id="data" type="tel" placeholder="+91 9876543210"></div>`;
+}
+document.querySelectorAll(".tab").forEach(b=>b.onclick=()=>renderForm(b.dataset.type));
+renderForm();
+
+function payload(){
+  if(currentType==="text") return document.getElementById("data").value;
+  if(currentType==="url"){
+    let v=document.getElementById("data").value.trim();
+    if(v && !/^https?:\/\//i.test(v)) v="https://"+v;
+    return v;
+  }
+  if(currentType==="phone") return "tel:"+document.getElementById("data").value.trim();
+  if(currentType==="email"){
+    const e=document.getElementById("email").value.trim(),s=document.getElementById("subject").value,m=document.getElementById("message").value;
+    return `mailto:${e}?subject=${encodeURIComponent(s)}&body=${encodeURIComponent(m)}`;
+  }
+  if(currentType==="wifi"){
+    const ssid=document.getElementById("ssid").value,pass=document.getElementById("pass").value,sec=document.getElementById("security").value;
+    return `WIFI:T:${sec};S:${ssid};P:${pass};;`;
+  }
+}
+function toast(t){const x=document.getElementById("toast");x.textContent=t;x.classList.add("show");clearTimeout(window.tt);window.tt=setTimeout(()=>x.classList.remove("show"),2200)}
+function updateUI(){resetDaily();document.getElementById("creditCount").textContent=state.credits;document.getElementById("todayCount").textContent=state.today;document.getElementById("accountName").textContent=state.name||"Guest Account";renderHistory()}
+function makeQR(){
+  resetDaily();
+  if(state.credits<1){toast("No credits left. Buy extra credits or wait for tomorrow.");return}
+  const data=payload();
+  if(!data){toast("Please enter some content.");return}
+  state.credits--;state.today++;state.lastData=data;
+  state.history.unshift({data,when:new Date().toLocaleString(),type:currentType});
+  state.history=state.history.slice(0,8);save();
+  const q=document.getElementById("qrcode");q.innerHTML="";q.classList.remove("hidden");
+  document.querySelector(".qr-placeholder")?.remove();
+  new QRCode(q,{text:data,width:260,height:260,colorDark:"#000000",colorLight:"#ffffff",correctLevel:QRCode.CorrectLevel.M});
+  updateUI();
+const pm=document.getElementById("paymentModal");
+if(pm) pm.addEventListener("click",e=>{if(e.target===pm)closePayment();});toast("QR generated — 1 credit used.");
+}
+function clearQR(){document.getElementById("qrcode").innerHTML="";document.getElementById("qrcode").classList.add("hidden");document.getElementById("qrbox").insertAdjacentHTML("afterbegin",`<div class="qr-placeholder"><b>Your QR appears here</b>Enter content and tap Generate.</div>`);state.lastData="";save()}
+function downloadQR(){
+  const c=document.querySelector("#qrcode canvas");
+  if(!c){toast("Generate a QR first.");return}
+  const a=document.createElement("a");a.download="darkqr-"+Date.now()+".png";a.href=c.toDataURL("image/png");a.click();
+}
+async function copyQR(){
+  if(!state.lastData){toast("Generate a QR first.");return}
+  try{await navigator.clipboard.writeText(state.lastData);toast("QR data copied.");}catch{toast("Clipboard unavailable in this browser.")}
+}
+function renderHistory(){
+  const el=document.getElementById("historyList");
+  if(!state.history.length){el.innerHTML='<div class="sub">No QR codes yet.</div>';return}
+  el.innerHTML=state.history.map((h,i)=>`<div class="history-item"><span>${escapeHtml(h.data)}</span><small>${h.when}</small></div>`).join("");
+}
+function escapeHtml(s){return String(s).replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]))}
+
+function legacyAskAI_DISABLED(){
+  const input=document.getElementById("aiInput"),q=input.value.trim();if(!q)return;
+  addMsg(q,"me");input.value="";
+  setTimeout(()=>addMsg(localAI(q),"ai"),280);
+}
+function addMsg(t,c){const chat=document.getElementById("chat");const d=document.createElement("div");d.className="msg "+c;d.textContent=t;chat.appendChild(d);chat.scrollTop=chat.scrollHeight}
+function localAI(q){
+  const l=q.toLowerCase();
+  if(l.includes("wifi"))return "For Wi‑Fi, use the Wi‑Fi tab. Enter SSID, password and WPA/WEP/open security, then generate. The QR uses the standard WIFI payload.";
+  if(l.includes("url")||l.includes("website"))return "Use the Website tab. You can paste a domain like example.com and I’ll automatically add https:// before encoding it.";
+  if(l.includes("password"))return "For a secret/password QR, use Text. Remember: a QR containing a password is readable by anyone who scans it, so don’t share sensitive QR images publicly.";
+  if(l.includes("credit"))return "You receive 50 free credits each day, and each generated QR consumes 1 credit. Extra-credit packs can be connected to a real payment provider.";
+  if(l.includes("payment"))return "The purchase UI is ready for integration. For real payments, create an order on your server and verify the provider signature on the server before adding credits.";
+  if(l.includes("ai"))return "This demo has an offline assistant so it works without exposing an AI API key. For a production AI assistant, connect your backend to your chosen AI API and keep the API key server-side.";
+  return "I can help format website URLs, Wi‑Fi details, email/phone data, passwords or any text into QR-ready content. Tell me what you want to encode.";
+}
+
+
+let authMode="signup",otpExpires=0,otpTimerHandle=null,localOtp=null;
+
+function updateUI(){
+  resetDaily();
+  document.getElementById("creditCount").textContent=state.credits;
+  document.getElementById("todayCount").textContent=state.today;
+  const ic=document.getElementById("imageCredits"); if(ic) ic.textContent=state.credits;
+  document.getElementById("accountName").textContent=state.name||"Guest Account";
+  const vs=document.getElementById("verifyStatus"); if(vs) vs.textContent=state.emailVerified?"Verified":"Not verified";
+  renderHistory();
+}
+function openAuth(mode){
+  authMode=mode;
+  document.getElementById("modal").classList.remove("hidden");
+  const signup=mode==="signup",login=mode==="login",verify=mode==="verify";
+  document.getElementById("authTitle").textContent=signup?"Create account":login?"Sign in":"Verify email";
+  document.getElementById("authSub").textContent=signup?"Create a password and verify your email with a fresh OTP.":login?"Sign in with your email and password.":"Enter the latest OTP sent to your email.";
+  document.getElementById("authNameWrap").classList.toggle("hidden",!signup);
+  document.getElementById("passwordWrap").classList.toggle("hidden",verify);
+  document.getElementById("authMainBtn").textContent=signup?"Create account & send OTP":login?"Sign in":"Send OTP";
+  document.getElementById("msBtn").classList.toggle("hidden",!login);
+  document.getElementById("otpWrap").classList.toggle("hidden",!verify);
+  if(verify) sendOTP();
+}
+function closeAccount(){const m=document.getElementById("modal");if(m)m.classList.add("hidden");clearInterval(otpTimerHandle)}
+async function api(path,body){
+  try{
+    const r=await fetch(path,{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify(body)});
+    const d=await r.json(); if(!r.ok) throw new Error(d.message||"Request failed"); return d;
+  }catch(e){return {demo:true,error:e.message}}
+}
+function freshOTP(){return String(Math.floor(100000+Math.random()*900000))}
+async function sendOTP(){
+  const email=document.getElementById("emailInput").value.trim();
+  if(!email){toast("Enter an email first.");return}
+  if(Date.now()<otpExpires){toast("Please wait for the 30-second cooldown.");return}
+  localOtp=freshOTP(); otpExpires=Date.now()+30000;
+  document.getElementById("otpWrap").classList.remove("hidden");
+  document.getElementById("resendBtn").disabled=true;
+  let left=30;
+  document.getElementById("otpTimer").textContent=`Resend available in ${left}s`;
+  clearInterval(otpTimerHandle);
+  otpTimerHandle=setInterval(()=>{
+    left--; document.getElementById("otpTimer").textContent=left>0?`Resend available in ${left}s`:"Resend available now.";
+    if(left<=0){clearInterval(otpTimerHandle);document.getElementById("resendBtn").disabled=false}
+  },1000);
+  const result=await api("/api/auth/send-otp",{email,mode:authMode});
+  if(result.demo){console.log("DEMO OTP:",localOtp);toast("Demo OTP created. Backend must email it in production.");}
+  else toast("A new OTP was sent to "+email);
+}
+async function verifyOTP(){
+  const email=document.getElementById("emailInput").value.trim(),code=document.getElementById("otpInput").value.trim();
+  if(code.length!==6){toast("Enter the 6-digit OTP.");return}
+  const r=await api("/api/auth/verify-otp",{email,otp:code});
+  if(!(r.demo?code===localOtp:r.verified)){toast("Invalid or expired OTP.");return}
+  state.email=email;state.emailVerified=true;state.loggedIn=true;save();updateUI();closeAccount();toast("Email verified successfully.");
+}
+async function authMain(){
+  const email=document.getElementById("emailInput").value.trim(),pw=document.getElementById("passwordInput").value;
+  if(!email){toast("Enter your email.");return}
+  if(authMode==="verify"){sendOTP();return}
+  if(pw.length<8){toast("Password must be at least 8 characters.");return}
+  if(authMode==="signup"){
+    const name=document.getElementById("nameInput").value.trim()||"User";
+    const r=await api("/api/auth/signup",{name,email,password:pw});
+    state.name=name;state.email=email;save();toast(r.demo?"Demo account prepared. Sending OTP…":"Account created. Sending OTP…");sendOTP();
+  }else{
+    const r=await api("/api/auth/login",{email,password:pw});
+    state.email=email;state.loggedIn=true;save();updateUI();closeAccount();toast(r.demo?"Demo sign-in successful.":"Signed in successfully.");
+  }
+}
+async function microsoftLogin(){
+  try{const r=await fetch("/api/auth/microsoft");if(r.redirected){location.href=r.url;return}}catch(e){}
+  toast("Microsoft OAuth needs the backend endpoint.");
+}
+async function startPayment(credits,amount){
+  window.pendingPayment={credits,amount};
+  const summary=document.getElementById("paymentSummary");
+  if(summary) summary.textContent=`Add ${credits} credits for ₹${amount}. Choose a payment method.`;
+  const modal=document.getElementById("paymentModal");
+  if(modal) modal.classList.remove("hidden");
+}
+function closePayment(){
+  const modal=document.getElementById("paymentModal");
+  if(modal) modal.classList.add("hidden");
+}
+async function demoPayment(method){
+  if(!window.pendingPayment){closePayment();return}
+  const {credits,amount}=window.pendingPayment;
+  // Try real backend first. If this standalone file has no backend, fall back to demo checkout.
+  try{
+    const r=await fetch("/api/payments/create",{
+      method:"POST",
+      headers:{"Content-Type":"application/json"},
+      body:JSON.stringify({credits,amount,currency:"INR",method})
+    });
+    if(r.ok){
+      const data=await r.json();
+      if(data.checkoutUrl){location.href=data.checkoutUrl;return}
+    }
+  }catch(e){}
+  state.credits+=credits;
+  save(); updateUI(); closePayment();
+  toast(`${credits} credits added via ${method} demo checkout.`);
+}
+async function askAI(){
+  const input=document.getElementById("aiInput"),q=input.value.trim();if(!q)return;
+  if(state.credits<5){toast("A full AI conversation costs 5 credits.");return}
+  state.credits-=5;state.aiSpent=(state.aiSpent||0)+5;save();updateUI();
+  addMsg(q,"me");input.value="";
+  const r=await api("/api/ai/chat",{message:q});
+  setTimeout(()=>addMsg(r.answer||localAI(q),"ai"),250);
+}
+async function generateAIImage(){
+  const prompt=document.getElementById("imagePrompt").value.trim();
+  if(!prompt){toast("Describe the image first.");return}
+  if(state.credits<5){toast("You need 5 credits for one AI image.");return}
+  state.credits-=5;save();updateUI();
+  const box=document.getElementById("imageResult");box.classList.remove("hidden");box.innerHTML='<div class="sub">Generating image…</div>';
+  const r=await api("/api/ai/image",{prompt});
+  if(r.imageUrl) box.innerHTML=`<img src="${r.imageUrl}" alt="AI generated image" style="width:100%;border-radius:14px;border:1px solid #26324a">`;
+  else box.innerHTML='<div class="sub">Image endpoint is not connected yet. Connect your AI image backend before production use.</div>';
+}
+updateUI();
+function pay(credits,price){
+  // DEMO ONLY: no real charge is performed.
+  if(confirm(`Demo payment: add ${credits} credits for ₹${price}?\\n\\nConnect this button to your server-side Razorpay/Stripe checkout before using real payments.`)){
+    state.credits+=credits;save();updateUI();toast(`${credits} demo credits added.`);
+  }
+}
+updateUI();
+</script>
+</body>
+</html>
